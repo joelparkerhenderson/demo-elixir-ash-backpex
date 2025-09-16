@@ -1,0 +1,571 @@
+[1mdiff --git a/.formatter.exs b/.formatter.exs[m
+[1mindex 17eea8c..ddbe7d4 100644[m
+[1m--- a/.formatter.exs[m
+[1m+++ b/.formatter.exs[m
+[36m@@ -1,5 +1,16 @@[m
+ [[m
+[31m-  import_deps: [:backpex, :ash_postgres, :ash_phoenix, :ash, :reactor, :ecto, :ecto_sql, :phoenix],[m
+[32m+[m[32m  import_deps: [[m
+[32m+[m[32m    :ash_authentication,[m
+[32m+[m[32m    :ash_authentication_phoenix,[m
+[32m+[m[32m    :backpex,[m
+[32m+[m[32m    :ash_postgres,[m
+[32m+[m[32m    :ash_phoenix,[m
+[32m+[m[32m    :ash,[m
+[32m+[m[32m    :reactor,[m
+[32m+[m[32m    :ecto,[m
+[32m+[m[32m    :ecto_sql,[m
+[32m+[m[32m    :phoenix[m
+[32m+[m[32m  ],[m
+   subdirectories: ["priv/*/migrations"],[m
+   plugins: [Spark.Formatter, Phoenix.LiveView.HTMLFormatter],[m
+   inputs: ["*.{heex,ex,exs}", "{config,lib,test}/**/*.{heex,ex,exs}", "priv/*/seeds.exs"][m
+[1mdiff --git a/README.md b/README.md[m
+[1mindex a1a8e40..42360c3 100644[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@ -58,7 +58,7 @@[m [mmix archive.install hex igniter_new[m
+ Create a new Elixir Ash Phoenix Postgres application:[m
+ [m
+   ```sh[m
+[31m-mix igniter.new my_app --with phx.new --install ash,ash_phoenix,ash_postgres,ash_backpex,backpex[m
+[32m+[m[32mmix igniter.new my_app --with phx.new --install ash,ash_authentication,ash_authentication_phoenix,ash_phoenix,ash_postgres,ash_backpex,backpex[m
+ cd my_app[m
+ mix ash.setup[m
+ ```[m
+[36m@@ -301,7 +301,7 @@[m [mdefmodule DemoElixirAshBackpex.MyDomain.Item do[m
+ [m
+   attributes do[m
+     uuid_primary_key :id[m
+[31m-[m
+[32m+[m[41m    [m
+     attribute :name, :string do[m
+       allow_nil? false[m
+       public? true[m
+[36m@@ -317,6 +317,15 @@[m [mend[m
+ [m
+ </details>[m
+ [m
+[32m+[m[32mEdit file [`lib/my_app/my_domain/item.ex`](lib/my_app/my_domain/item.ex).[m
+[32m+[m
+[32m+[m[32mAfter the primary key, append these timestamp attributes:[m
+[32m+[m
+[32m+[m[32m```elixir[m
+[32m+[m[32mcreate_timestamp :created_at[m
+[32m+[m[32mupdate_timestamp :updated_at[m
+[32m+[m[32m```[m
+[32m+[m
+ ## Migrate[m
+ [m
+ Generate the migration:[m
+[36m@@ -728,3 +737,11 @@[m [mmix phx.server[m
+ ```[m
+ [m
+ Browse <http://localhost:4000>[m
+[32m+[m
+[32m+[m[32m## Create user[m
+[32m+[m
+[32m+[m[32mRun:[m
+[32m+[m
+[32m+[m[32m```sh[m
+[32m+[m[32mmix igniter.install ash_authentication_phoenix[m
+[32m+[m[32m```[m
+\ No newline at end of file[m
+[1mdiff --git a/assets/css/app.css b/assets/css/app.css[m
+[1mindex 2019b0a..c0b848e 100644[m
+[1m--- a/assets/css/app.css[m
+[1m+++ b/assets/css/app.css[m
+[36m@@ -2,6 +2,7 @@[m
+    https://tailwindcss.com/docs/configuration */[m
+ [m
+ @import "tailwindcss" source(none);[m
+[32m+[m[32m@source "../../deps/ash_authentication_phoenix";[m
+ @source "../css";[m
+ @source "../js";[m
+ @source "../../lib/demo_elixir_ash_backpex_web";[m
+[1mdiff --git a/config/config.exs b/config/config.exs[m
+[1mindex c4ae188..e473faa 100644[m
+[1m--- a/config/config.exs[m
+[1m+++ b/config/config.exs[m
+[36m@@ -25,6 +25,8 @@[m [mconfig :spark,[m
+     remove_parens?: true,[m
+     "Ash.Resource": [[m
+       section_order: [[m
+[32m+[m[32m        :authentication,[m
+[32m+[m[32m        :tokens,[m
+         :postgres,[m
+         :resource,[m
+         :code_interface,[m
+[36m@@ -48,7 +50,7 @@[m [mconfig :spark,[m
+ config :demo_elixir_ash_backpex,[m
+   ecto_repos: [DemoElixirAshBackpex.Repo],[m
+   generators: [timestamp_type: :utc_datetime],[m
+[31m-  ash_domains: [DemoElixirAshBackpex.MyDomain][m
+[32m+[m[32m  ash_domains: [DemoElixirAshBackpex.Accounts, DemoElixirAshBackpex.MyDomain][m
+ [m
+ # Configures the endpoint[m
+ config :demo_elixir_ash_backpex, DemoElixirAshBackpexWeb.Endpoint,[m
+[1mdiff --git a/config/dev.exs b/config/dev.exs[m
+[1mindex fba4328..d58ef61 100644[m
+[1m--- a/config/dev.exs[m
+[1m+++ b/config/dev.exs[m
+[36m@@ -66,7 +66,9 @@[m [mconfig :demo_elixir_ash_backpex, DemoElixirAshBackpexWeb.Endpoint,[m
+   ][m
+ [m
+ # Enable dev routes for dashboard and mailbox[m
+[31m-config :demo_elixir_ash_backpex, dev_routes: true[m
+[32m+[m[32mconfig :demo_elixir_ash_backpex,[m
+[32m+[m[32m  dev_routes: true,[m
+[32m+[m[32m  token_signing_secret: "8nOHE0tgnOM1CRPgJxiPxJbn1IX+n4UJ"[m
+ [m
+ # Do not include metadata nor timestamps in development logs[m
+ config :logger, :default_formatter, format: "[$level] $message\n"[m
+[1mdiff --git a/config/runtime.exs b/config/runtime.exs[m
+[1mindex 18125a5..1eb0f77 100644[m
+[1m--- a/config/runtime.exs[m
+[1m+++ b/config/runtime.exs[m
+[36m@@ -67,6 +67,11 @@[m [mif config_env() == :prod do[m
+     ],[m
+     secret_key_base: secret_key_base[m
+ [m
+[32m+[m[32m  config :demo_elixir_ash_backpex,[m
+[32m+[m[32m    token_signing_secret:[m
+[32m+[m[32m      System.get_env("TOKEN_SIGNING_SECRET") ||[m
+[32m+[m[32m        raise("Missing environment variable `TOKEN_SIGNING_SECRET`!")[m
+[32m+[m
+   # ## SSL Support[m
+   #[m
+   # To get SSL working, you will need to add the `https` key[m
+[1mdiff --git a/config/test.exs b/config/test.exs[m
+[1mindex 6ba54f1..6627f7f 100644[m
+[1m--- a/config/test.exs[m
+[1m+++ b/config/test.exs[m
+[36m@@ -1,4 +1,6 @@[m
+ import Config[m
+[32m+[m[32mconfig :demo_elixir_ash_backpex, token_signing_secret: "XWY+Fb3767IIk6p+hcv7gAhg4G29KOzd"[m
+[32m+[m[32mconfig :bcrypt_elixir, log_rounds: 1[m
+ config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true[m
+ [m
+ # Configure your database[m
+[1mdiff --git a/lib/demo_elixir_ash_backpex/application.ex b/lib/demo_elixir_ash_backpex/application.ex[m
+[1mindex c86bfca..6a03c26 100644[m
+[1m--- a/lib/demo_elixir_ash_backpex/application.ex[m
+[1m+++ b/lib/demo_elixir_ash_backpex/application.ex[m
+[36m@@ -16,7 +16,8 @@[m [mdefmodule DemoElixirAshBackpex.Application do[m
+       # Start a worker by calling: DemoElixirAshBackpex.Worker.start_link(arg)[m
+       # {DemoElixirAshBackpex.Worker, arg},[m
+       # Start to serve requests, typically the last entry[m
+[31m-      DemoElixirAshBackpexWeb.Endpoint[m
+[32m+[m[32m      DemoElixirAshBackpexWeb.Endpoint,[m
+[32m+[m[32m      {AshAuthentication.Supervisor, [otp_app: :demo_elixir_ash_backpex]}[m
+     ][m
+ [m
+     # See https://hexdocs.pm/elixir/Supervisor.html[m
+[1mdiff --git a/lib/demo_elixir_ash_backpex/repo.ex b/lib/demo_elixir_ash_backpex/repo.ex[m
+[1mindex db681f1..7d99f2f 100644[m
+[1m--- a/lib/demo_elixir_ash_backpex/repo.ex[m
+[1m+++ b/lib/demo_elixir_ash_backpex/repo.ex[m
+[36m@@ -5,7 +5,7 @@[m [mdefmodule DemoElixirAshBackpex.Repo do[m
+   @impl true[m
+   def installed_extensions do[m
+     # Add extensions here, and the migration generator will install them.[m
+[31m-    ["ash-functions"][m
+[32m+[m[32m    ["ash-functions", "citext"][m
+   end[m
+ [m
+   # Don't open unnecessary transactions[m
+[1mdiff --git a/lib/demo_elixir_ash_backpex_web/components/layouts.ex b/lib/demo_elixir_ash_backpex_web/components/layouts.ex[m
+[1mindex a259201..a82733f 100644[m
+[1m--- a/lib/demo_elixir_ash_backpex_web/components/layouts.ex[m
+[1m+++ b/lib/demo_elixir_ash_backpex_web/components/layouts.ex[m
+[36m@@ -155,5 +155,4 @@[m [mdefmodule DemoElixirAshBackpexWeb.Layouts do[m
+   end[m
+ [m
+   def admin(assigns)[m
+[31m-[m
+ end[m
+[1mdiff --git a/lib/demo_elixir_ash_backpex_web/live/admin/item_live.ex b/lib/demo_elixir_ash_backpex_web/live/admin/item_live.ex[m
+[1mindex debeaad..be3a64c 100644[m
+[1m--- a/lib/demo_elixir_ash_backpex_web/live/admin/item_live.ex[m
+[1m+++ b/lib/demo_elixir_ash_backpex_web/live/admin/item_live.ex[m
+[36m@@ -1,13 +1,13 @@[m
+ defmodule DemoElixirAshBackpexWeb.Admin.ItemLive do[m
+[31m-    use AshBackpex.LiveResource[m
+[32m+[m[32m  use AshBackpex.LiveResource[m
+ [m
+[31m-    backpex do[m
+[31m-      resource(DemoElixirAshBackpex.MyDomain.Item)[m
+[31m-      layout({DemoElixirAshBackpexWeb.Layouts, :admin})[m
+[32m+[m[32m  backpex do[m
+[32m+[m[32m    resource(DemoElixirAshBackpex.MyDomain.Item)[m
+[32m+[m[32m    layout({DemoElixirAshBackpexWeb.Layouts, :admin})[m
+ [m
+[31m-      fields do[m
+[31m-        field :name[m
+[31m-        field :note[m
+[31m-      end[m
+[32m+[m[32m    fields do[m
+[32m+[m[32m      field :name[m
+[32m+[m[32m      field :note[m
+     end[m
+[32m+[m[32m  end[m
+ end[m
+[1mdiff --git a/lib/demo_elixir_ash_backpex_web/live/items/form_live.ex b/lib/demo_elixir_ash_backpex_web/live/items/form_live.ex[m
+[1mindex d4f116c..260aa51 100644[m
+[1m--- a/lib/demo_elixir_ash_backpex_web/live/items/form_live.ex[m
+[1m+++ b/lib/demo_elixir_ash_backpex_web/live/items/form_live.ex[m
+[36m@@ -6,28 +6,28 @@[m [mdefmodule DemoElixirAshBackpexWeb.Items.FormLive do[m
+ [m
+   # Update[m
+   def mount(%{"id" => id}, _session, socket) do[m
+[31m-      form = AshPhoenix.Form.for_create(DemoElixirAshBackpex.MyDomain.Item, :create)[m
+[31m-      item = Ash.get!(X, id)[m
+[32m+[m[32m    form = AshPhoenix.Form.for_create(DemoElixirAshBackpex.MyDomain.Item, :create)[m
+[32m+[m[32m    item = Ash.get!(X, id)[m
+ [m
+[31m-      socket =[m
+[32m+[m[32m    socket =[m
+       socket[m
+       |> assign(:page_title, "Update Item")[m
+       |> assign(:form, to_form(form))[m
+       |> assign(:item, item)[m
+ [m
+[31m-      {:ok, socket}[m
+[32m+[m[32m    {:ok, socket}[m
+   end[m
+ [m
+   # Create[m
+   def mount(_params, _session, socket) do[m
+[31m-      form = AshPhoenix.Form.for_create(X, :create)[m
+[32m+[m[32m    form = AshPhoenix.Form.for_create(X, :create)[m
+ [m
+[31m-      socket =[m
+[31m-        socket[m
+[31m-        |> assign(:page_title, "Create Item")[m
+[31m-        |> assign(:form, to_form(form))[m
+[32m+[m[32m    socket =[m
+[32m+[m[32m      socket[m
+[32m+[m[32m      |> assign(:page_title, "Create Item")[m
+[32m+[m[32m      |> assign(:form, to_form(form))[m
+ [m
+[31m-      {:ok, socket}[m
+[32m+[m[32m    {:ok, socket}[m
+   end[m
+ [m
+   def render(assigns) do[m
+[36m@@ -53,34 +53,30 @@[m [mdefmodule DemoElixirAshBackpexWeb.Items.FormLive do[m
+     """[m
+   end[m
+ [m
+[31m-# Validate[m
+[31m-def handle_event("validate", %{"form" => form_data}, socket) do[m
+[32m+[m[32m  # Validate[m
+[32m+[m[32m  def handle_event("validate", %{"form" => form_data}, socket) do[m
+     socket =[m
+[31m-        update(socket, :form, fn form ->[m
+[31m-            AshPhoenix.Form.validate(form, form_data)[m
+[31m-        end)[m
+[32m+[m[32m      update(socket, :form, fn form ->[m
+[32m+[m[32m        AshPhoenix.Form.validate(form, form_data)[m
+[32m+[m[32m      end)[m
+ [m
+     {:noreply, socket}[m
+[31m-end[m
+[31m-[m
+[31m-# Save[m
+[31m-def handle_event("save", %{"form" => form_data}, socket) do[m
+[31m-  case AshPhoenix.Form.submit(socket.assigns.form, params: form_data) do[m
+[31m-    {:ok, item} ->[m
+[31m-      {:noreply,[m
+[31m-        socket[m
+[31m-        |> put_flash(:info, "Saved.")[m
+[31m-        |> push_navigate(to: ~p"/items/#{item}")[m
+[31m-      }[m
+[32m+[m[32m  end[m
+ [m
+[31m-    {:error, form} ->[m
+[31m-      {:noreply,[m
+[31m-        socket[m
+[31m-        |> put_flash(:error, "Save failed.")[m
+[31m-        |> assign(:form, form)[m
+[31m-    }[m
+[32m+[m[32m  # Save[m
+[32m+[m[32m  def handle_event("save", %{"form" => form_data}, socket) do[m
+[32m+[m[32m    case AshPhoenix.Form.submit(socket.assigns.form, params: form_data) do[m
+[32m+[m[32m      {:ok, item} ->[m
+[32m+[m[32m        {:noreply,[m
+[32m+[m[32m         socket[m
+[32m+[m[32m         |> put_flash(:info, "Saved.")[m
+[32m+[m[32m         |> push_navigate(to: ~p"/items/#{item}")}[m
+ [m
+[32m+[m[32m      {:error, form} ->[m
+[32m+[m[32m        {:noreply,[m
+[32m+[m[32m         socket[m
+[32m+[m[32m         |> put_flash(:error, "Save failed.")[m
+[32m+[m[32m         |> assign(:form, form)}[m
+[32m+[m[32m    end[m
+   end[m
+ end[m
+[31m-[m
+[31m-end[m
+[1mdiff --git a/lib/demo_elixir_ash_backpex_web/live/items/index_live.ex b/lib/demo_elixir_ash_backpex_web/live/items/index_live.ex[m
+[1mindex 158283e..a092bce 100644[m
+[1m--- a/lib/demo_elixir_ash_backpex_web/live/items/index_live.ex[m
+[1m+++ b/lib/demo_elixir_ash_backpex_web/live/items/index_live.ex[m
+[36m@@ -14,15 +14,15 @@[m [mdefmodule DemoElixirAshBackpexWeb.Items.IndexLive do[m
+ [m
+   def handle_params(_params, _url, socket) do[m
+     # items = DemoElixirAshBackpex.MyDomain.items_read!()[m
+[31m-    items = X[m
+[31m-    |> Ash.Query.for_read(:read)[m
+[31m-    |> Ash.read!()[m
+[32m+[m[32m    items =[m
+[32m+[m[32m      X[m
+[32m+[m[32m      |> Ash.Query.for_read(:read)[m
+[32m+[m[32m      |> Ash.read!()[m
+ [m
+     {:noreply,[m
+[31m-      socket[m
+[31m-      |> assign(:page_title, "Items")[m
+[31m-      |> assign(:items, items)[m
+[31m-    }[m
+[32m+[m[32m     socket[m
+[32m+[m[32m     |> assign(:page_title, "Items")[m
+[32m+[m[32m     |> assign(:items, items)}[m
+   end[m
+ [m
+   def render(assigns) do[m
+[36m@@ -31,9 +31,7 @@[m [mdefmodule DemoElixirAshBackpexWeb.Items.IndexLive do[m
+       <.header>[m
+         {@page_title}[m
+         <:actions>[m
+[31m-          <.button[m
+[31m-            navigate={~p"/items/new"}[m
+[31m-          >[m
+[32m+[m[32m          <.button navigate={~p"/items/new"}>[m
+             New[m
+           </.button>[m
+         </:actions>[m
+[36m@@ -64,5 +62,4 @@[m [mdefmodule DemoElixirAshBackpexWeb.Items.IndexLive do[m
+     </.link>[m
+     """[m
+   end[m
+[31m-[m
+ end[m
+[1mdiff --git a/lib/demo_elixir_ash_backpex_web/live/items/show_live.ex b/lib/demo_elixir_ash_backpex_web/live/items/show_live.ex[m
+[1mindex 35db4b3..451d92f 100644[m
+[1m--- a/lib/demo_elixir_ash_backpex_web/live/items/show_live.ex[m
+[1m+++ b/lib/demo_elixir_ash_backpex_web/live/items/show_live.ex[m
+[36m@@ -12,10 +12,9 @@[m [mdefmodule DemoElixirAshBackpexWeb.Items.ShowLive do[m
+     item = Ash.get!(X, id)[m
+ [m
+     {:noreply,[m
+[31m-      socket[m
+[31m-      |> assign(:page_title, item.name)[m
+[31m-      |> assign(:item, item)[m
+[31m-    }[m
+[32m+[m[32m     socket[m
+[32m+[m[32m     |> assign(:page_title, item.name)[m
+[32m+[m[32m     |> assign(:item, item)}[m
+   end[m
+ [m
+   def render(assigns) do[m
+[36m@@ -30,9 +29,7 @@[m [mdefmodule DemoElixirAshBackpexWeb.Items.ShowLive do[m
+           >[m
+             Delete[m
+           </.button>[m
+[31m-          <.button[m
+[31m-            navigate={~p"/items/#{@item.id}/edit"}[m
+[31m-          >[m
+[32m+[m[32m          <.button navigate={~p"/items/#{@item.id}/edit"}>[m
+             Edit[m
+           </.button>[m
+         </:actions>[m
+[36m@@ -50,16 +47,15 @@[m [mdefmodule DemoElixirAshBackpexWeb.Items.ShowLive do[m
+         {:noreply,[m
+          socket[m
+          |> put_flash(:info, "Deleted.")[m
+[31m-         |> push_navigate(to: ~p"/items")[m
+[31m-        }[m
+[32m+[m[32m         |> push_navigate(to: ~p"/items")}[m
+[32m+[m
+       {:error, error} ->[m
+[31m-          Logger.warning("Delete failed for item '#{id}':[m
+[32m+[m[32m        Logger.warning("Delete failed for item '#{id}':[m
+           #{inspect(error)}")[m
+[31m-          {:noreply,[m
+[31m-            socket[m
+[31m-            |> put_flash(:error, "Delete failed.")[m
+[31m-          }[m
+[32m+[m
+[32m+[m[32m        {:noreply,[m
+[32m+[m[32m         socket[m
+[32m+[m[32m         |> put_flash(:error, "Delete failed.")}[m
+     end[m
+   end[m
+[31m-[m
+ end[m
+[1mdiff --git a/lib/demo_elixir_ash_backpex_web/router.ex b/lib/demo_elixir_ash_backpex_web/router.ex[m
+[1mindex a21cc05..3d1152a 100644[m
+[1m--- a/lib/demo_elixir_ash_backpex_web/router.ex[m
+[1m+++ b/lib/demo_elixir_ash_backpex_web/router.ex[m
+[36m@@ -1,6 +1,9 @@[m
+ defmodule DemoElixirAshBackpexWeb.Router do[m
+   use DemoElixirAshBackpexWeb, :router[m
+ [m
+[32m+[m[32m  use AshAuthentication.Phoenix.Router[m
+[32m+[m
+[32m+[m[32m  import AshAuthentication.Plug.Helpers[m
+   import Backpex.Router[m
+ [m
+   pipeline :browser do[m
+[36m@@ -10,10 +13,30 @@[m [mdefmodule DemoElixirAshBackpexWeb.Router do[m
+     plug :put_root_layout, html: {DemoElixirAshBackpexWeb.Layouts, :root}[m
+     plug :protect_from_forgery[m
+     plug :put_secure_browser_headers[m
+[32m+[m[32m    plug :load_from_session[m
+   end[m
+ [m
+   pipeline :api do[m
+     plug :accepts, ["json"][m
+[32m+[m[32m    plug :load_from_bearer[m
+[32m+[m[32m    plug :set_actor, :user[m
+[32m+[m[32m  end[m
+[32m+[m
+[32m+[m[32m  scope "/", DemoElixirAshBackpexWeb do[m
+[32m+[m[32m    pipe_through :browser[m
+[32m+[m
+[32m+[m[32m    ash_authentication_live_session :authenticated_routes do[m
+[32m+[m[32m      # in each liveview, add one of the following at the top of the module:[m
+[32m+[m[32m      #[m
+[32m+[m[32m      # If an authenticated user must be present:[m
+[32m+[m[32m      # on_mount {DemoElixirAshBackpexWeb.LiveUserAuth, :live_user_required}[m
+[32m+[m[32m      #[m
+[32m+[m[32m      # If an authenticated user *may* be present:[m
+[32m+[m[32m      # on_mount {DemoElixirAshBackpexWeb.LiveUserAuth, :live_user_optional}[m
+[32m+[m[32m      #[m
+[32m+[m[32m      # If an authenticated user must *not* be present:[m
+[32m+[m[32m      # on_mount {DemoElixirAshBackpexWeb.LiveUserAuth, :live_no_user}[m
+[32m+[m[32m    end[m
+   end[m
+ [m
+   scope "/admin", DemoElixirAshBackpexWeb do[m
+[36m@@ -34,6 +57,42 @@[m [mdefmodule DemoElixirAshBackpexWeb.Router do[m
+     live "/items/new", Items.FormLive, :new[m
+     live "/items/:id", Items.ShowLive[m
+     live "/items/:id/edit", Items.FormLive, :edit[m
+[32m+[m[32m    auth_routes AuthController, DemoElixirAshBackpex.Accounts.User, path: "/auth"[m
+[32m+[m[32m    sign_out_route AuthController[m
+[32m+[m
+[32m+[m[32m    # Remove these if you'd like to use your own authentication views[m
+[32m+[m[32m    sign_in_route register_path: "/register",[m
+[32m+[m[32m                  reset_path: "/reset",[m
+[32m+[m[32m                  auth_routes_prefix: "/auth",[m
+[32m+[m[32m                  on_mount: [{DemoElixirAshBackpexWeb.LiveUserAuth, :live_no_user}],[m
+[32m+[m[32m                  overrides: [[m
+[32m+[m[32m                    DemoElixirAshBackpexWeb.AuthOverrides,[m
+[32m+[m[32m                    AshAuthentication.Phoenix.Overrides.Default[m
+[32m+[m[32m                  ][m
+[32m+[m
+[32m+[m[32m    # Remove this if you do not want to use the reset password feature[m
+[32m+[m[32m    reset_route auth_routes_prefix: "/auth",[m
+[32m+[m[32m                overrides: [[m
+[32m+[m[32m                  DemoElixirAshBackpexWeb.AuthOverrides,[m
+[32m+[m[32m                  AshAuthentication.Phoenix.Overrides.Default[m
+[32m+[m[32m                ][m
+[32m+[m
+[32m+[m[32m    # Remove this if you do not use the confirmation strategy[m
+[32m+[m[32m    confirm_route DemoElixirAshBackpex.Accounts.User, :confirm_new_user,[m
+[32m+[m[32m      auth_routes_prefix: "/auth",[m
+[32m+[m[32m      overrides: [[m
+[32m+[m[32m        DemoElixirAshBackpexWeb.AuthOverrides,[m
+[32m+[m[32m        AshAuthentication.Phoenix.Overrides.Default[m
+[32m+[m[32m      ][m
+[32m+[m
+[32m+[m[32m    # Remove this if you do not use the magic link strategy.[m
+[32m+[m[32m    magic_sign_in_route(DemoElixirAshBackpex.Accounts.User, :magic_link,[m
+[32m+[m[32m      auth_routes_prefix: "/auth",[m
+[32m+[m[32m      overrides: [[m
+[32m+[m[32m        DemoElixirAshBackpexWeb.AuthOverrides,[m
+[32m+[m[32m        AshAuthentication.Phoenix.Overrides.Default[m
+[32m+[m[32m      ][m
+[32m+[m[32m    )[m
+   end[m
+ [m
+   # Other scopes may use custom stacks.[m
+[1mdiff --git a/mix.exs b/mix.exs[m
+[1mindex 2978ac6..de59e05 100644[m
+[1m--- a/mix.exs[m
+[1m+++ b/mix.exs[m
+[36m@@ -41,6 +41,8 @@[m [mdefmodule DemoElixirAshBackpex.MixProject do[m
+   # Type `mix help deps` for examples and options.[m
+   defp deps do[m
+     [[m
+[32m+[m[32m      {:picosat_elixir, "~> 0.2"},[m
+[32m+[m[32m      {:ash_authentication_phoenix, "~> 2.0"},[m
+       {:sourceror, "~> 1.8", only: [:dev, :test]},[m
+       {:igniter_js, "~> 0.4"},[m
+       {:backpex, "~> 0.15"},[m
+[1mdiff --git a/mix.lock b/mix.lock[m
+[1mindex 13e5eec..7eb4a15 100644[m
+[1m--- a/mix.lock[m
+[1m+++ b/mix.lock[m
+[36m@@ -1,13 +1,18 @@[m
+ %{[m
+   "ash": {:hex, :ash, "3.5.40", "19b82796359f32520acd83581c5edfefd06e177fb3c15875f52d5f437f90d902", [:mix], [{:decimal, "~> 2.0", [hex: :decimal, repo: "hexpm", optional: false]}, {:ecto, "~> 3.7", [hex: :ecto, repo: "hexpm", optional: false]}, {:ets, "~> 0.8", [hex: :ets, repo: "hexpm", optional: false]}, {:igniter, ">= 0.6.4 and < 1.0.0-0", [hex: :igniter, repo: "hexpm", optional: true]}, {:jason, ">= 1.0.0", [hex: :jason, repo: "hexpm", optional: false]}, {:picosat_elixir, "~> 0.2", [hex: :picosat_elixir, repo: "hexpm", optional: true]}, {:plug, ">= 0.0.0", [hex: :plug, repo: "hexpm", optional: true]}, {:reactor, "~> 0.11", [hex: :reactor, repo: "hexpm", optional: false]}, {:simple_sat, ">= 0.1.1 and < 1.0.0-0", [hex: :simple_sat, repo: "hexpm", optional: true]}, {:spark, ">= 2.2.68 and < 3.0.0-0", [hex: :spark, repo: "hexpm", optional: false]}, {:splode, ">= 0.2.6 and < 1.0.0-0", [hex: :splode, repo: "hexpm", optional: false]}, {:stream_data, "~> 1.0", [hex: :stream_data, repo: "hexpm", optional: false]}, {:telemetry, "~> 1.1", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "278959afb7e54fd3e7184650bfd4ee6a45979aa3d37913d9e19a7400097eae2d"},[m
+[32m+[m[32m  "ash_authentication": {:hex, :ash_authentication, "4.10.0", "f59f6e5effee41992911089195afbf8d6b679d6d4e216089bf9689ab9d175092", [:mix], [{:argon2_elixir, "~> 4.0", [hex: :argon2_elixir, repo: "hexpm", optional: true]}, {:ash, ">= 3.4.29 and < 4.0.0-0", [hex: :ash, repo: "hexpm", optional: false]}, {:ash_postgres, ">= 2.6.8 and < 3.0.0-0", [hex: :ash_postgres, repo: "hexpm", optional: true]}, {:assent, "~> 0.2.13", [hex: :assent, repo: "hexpm", optional: false]}, {:bcrypt_elixir, "~> 3.0", [hex: :bcrypt_elixir, repo: "hexpm", optional: false]}, {:castore, "~> 1.0", [hex: :castore, repo: "hexpm", optional: false]}, {:finch, "~> 0.19", [hex: :finch, repo: "hexpm", optional: false]}, {:igniter, "~> 0.4", [hex: :igniter, repo: "hexpm", optional: true]}, {:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: false]}, {:joken, "~> 2.5", [hex: :joken, repo: "hexpm", optional: false]}, {:plug, "~> 1.13", [hex: :plug, repo: "hexpm", optional: false]}, {:spark, "~> 2.0", [hex: :spark, repo: "hexpm", optional: false]}, {:splode, "~> 0.2", [hex: :splode, repo: "hexpm", optional: false]}], "hexpm", "63a179b8f1578429f13f13fe9134ec693207a37766b02aaa31b777d0f480b281"},[m
+[32m+[m[32m  "ash_authentication_phoenix": {:hex, :ash_authentication_phoenix, "2.10.5", "9f3b1bee4a57f2269efea61e5efe55472683429b8a5bf1ebdd02d9748640f106", [:mix], [{:ash, "~> 3.0", [hex: :ash, repo: "hexpm", optional: false]}, {:ash_authentication, ">= 4.9.1 and < 5.0.0-0", [hex: :ash_authentication, repo: "hexpm", optional: false]}, {:ash_phoenix, ">= 2.3.11 and < 3.0.0-0", [hex: :ash_phoenix, repo: "hexpm", optional: false]}, {:bcrypt_elixir, "~> 3.0", [hex: :bcrypt_elixir, repo: "hexpm", optional: false]}, {:gettext, "~> 0.26", [hex: :gettext, repo: "hexpm", optional: true]}, {:igniter, ">= 0.5.25 and < 1.0.0-0", [hex: :igniter, repo: "hexpm", optional: true]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: false]}, {:phoenix, "~> 1.6", [hex: :phoenix, repo: "hexpm", optional: false]}, {:phoenix_html, "~> 4.0", [hex: :phoenix_html, repo: "hexpm", optional: false]}, {:phoenix_html_helpers, "~> 1.0", [hex: :phoenix_html_helpers, repo: "hexpm", optional: false]}, {:phoenix_live_view, "~> 1.0", [hex: :phoenix_live_view, repo: "hexpm", optional: false]}, {:phoenix_view, "~> 2.0", [hex: :phoenix_view, repo: "hexpm", optional: false]}, {:slugify, "~> 1.3", [hex: :slugify, repo: "hexpm", optional: false]}], "hexpm", "3f25778d126c7e759444df0855077802c93299457afdf26566f8de6320ba56da"},[m
+   "ash_backpex": {:hex, :ash_backpex, "0.0.8", "646bc62bf27bdc91e1df571dd5758631aaaa585455ab0efe17ac1a83fd56b66f", [:mix], [{:ash, "~> 3.0", [hex: :ash, repo: "hexpm", optional: false]}, {:ash_phoenix, "~> 2.3.14", [hex: :ash_phoenix, repo: "hexpm", optional: false]}, {:backpex, "~> 0.15.2", [hex: :backpex, repo: "hexpm", optional: false]}, {:phoenix_html, "~> 3.0 or ~> 4.0", [hex: :phoenix_html, repo: "hexpm", optional: false]}, {:spark, "~> 2.0", [hex: :spark, repo: "hexpm", optional: false]}], "hexpm", "0e5a16584c4ebfe16ad62fbecd3d9f1062e3f8712d4dc6f1b3a5792ab4c386f6"},[m
+   "ash_phoenix": {:hex, :ash_phoenix, "2.3.16", "d96bd84087c5fcd7b78f7be61754c90bac89ffc7ccc1aa9050918277a7b1fc4e", [:mix], [{:ash, ">= 3.5.13 and < 4.0.0-0", [hex: :ash, repo: "hexpm", optional: false]}, {:igniter, "~> 0.6", [hex: :igniter, repo: "hexpm", optional: true]}, {:inertia, "~> 2.3", [hex: :inertia, repo: "hexpm", optional: true]}, {:phoenix, "~> 1.5.6 or ~> 1.6", [hex: :phoenix, repo: "hexpm", optional: false]}, {:phoenix_html, "~> 4.0", [hex: :phoenix_html, repo: "hexpm", optional: false]}, {:phoenix_live_view, "~> 0.20.3 or ~> 1.0-rc.1", [hex: :phoenix_live_view, repo: "hexpm", optional: false]}, {:spark, ">= 2.2.29 and < 3.0.0-0", [hex: :spark, repo: "hexpm", optional: false]}], "hexpm", "75c2affee727cd3963146afe5b6b6a9571373afd721a693c6d1694f70075f9fc"},[m
+   "ash_postgres": {:hex, :ash_postgres, "2.6.17", "45c71f5fe7ed961cf19016dbd7179aabcd5691a2cd11fe28a84b42ce263cbfa2", [:mix], [{:ash, ">= 3.5.35 and < 4.0.0-0", [hex: :ash, repo: "hexpm", optional: false]}, {:ash_sql, ">= 0.2.90 and < 1.0.0-0", [hex: :ash_sql, repo: "hexpm", optional: false]}, {:ecto, "~> 3.13", [hex: :ecto, repo: "hexpm", optional: false]}, {:ecto_sql, "~> 3.13", [hex: :ecto_sql, repo: "hexpm", optional: false]}, {:igniter, ">= 0.6.14 and < 1.0.0-0", [hex: :igniter, repo: "hexpm", optional: true]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: false]}, {:postgrex, ">= 0.0.0", [hex: :postgrex, repo: "hexpm", optional: false]}], "hexpm", "9d80a348830adcde9756692ec24d03b92320ea44e5a49793ec675915d0c20f9a"},[m
+   "ash_sql": {:hex, :ash_sql, "0.2.92", "7ef55c307944e68bfd9de07a186fda4bc3b6b7b401f5c5a5cdd0fafafe75d7d2", [:mix], [{:ash, ">= 3.5.35 and < 4.0.0-0", [hex: :ash, repo: "hexpm", optional: false]}, {:ecto, "~> 3.9", [hex: :ecto, repo: "hexpm", optional: false]}, {:ecto_sql, "~> 3.9", [hex: :ecto_sql, repo: "hexpm", optional: false]}], "hexpm", "445fea8343a17d3842ad48007ef07b09ffa28209b3e03ea8772062c42fc50df1"},[m
+[32m+[m[32m  "assent": {:hex, :assent, "0.2.13", "11226365d2d8661d23e9a2cf94d3255e81054ff9d88ac877f28bfdf38fa4ef31", [:mix], [{:certifi, ">= 0.0.0", [hex: :certifi, repo: "hexpm", optional: true]}, {:finch, "~> 0.15", [hex: :finch, repo: "hexpm", optional: true]}, {:jose, "~> 1.8", [hex: :jose, repo: "hexpm", optional: true]}, {:mint, "~> 1.0", [hex: :mint, repo: "hexpm", optional: true]}, {:req, "~> 0.4", [hex: :req, repo: "hexpm", optional: true]}, {:ssl_verify_fun, ">= 0.0.0", [hex: :ssl_verify_fun, repo: "hexpm", optional: true]}], "hexpm", "bf9f351b01dd6bceea1d1f157f05438f6765ce606e6eb8d29296003d29bf6eab"},[m
+   "backpex": {:hex, :backpex, "0.15.2", "8f11b0bda5754318bfd08cab0a6dfe4c41d9dcc6c29a56edad40fa1f36476bda", [:mix], [{:ash, "~> 3.0", [hex: :ash, repo: "hexpm", optional: true]}, {:ash_postgres, "~> 2.0", [hex: :ash_postgres, repo: "hexpm", optional: true]}, {:ecto_sql, "~> 3.6", [hex: :ecto_sql, repo: "hexpm", optional: false]}, {:gettext, "~> 0.26", [hex: :gettext, repo: "hexpm", optional: false]}, {:igniter, "~> 0.6", [hex: :igniter, repo: "hexpm", optional: true]}, {:igniter_js, "~> 0.4", [hex: :igniter_js, repo: "hexpm", optional: true]}, {:jason, "~> 1.2", [hex: :jason, repo: "hexpm", optional: false]}, {:money, "~> 1.13", [hex: :money, repo: "hexpm", optional: false]}, {:nimble_options, "~> 1.1", [hex: :nimble_options, repo: "hexpm", optional: false]}, {:number, "~> 1.0", [hex: :number, repo: "hexpm", optional: false]}, {:phoenix, ">= 1.7.6 and < 1.9.0", [hex: :phoenix, repo: "hexpm", optional: false]}, {:phoenix_ecto, "~> 4.4", [hex: :phoenix_ecto, repo: "hexpm", optional: false]}, {:phoenix_html, "~> 4.1", [hex: :phoenix_html, repo: "hexpm", optional: false]}, {:phoenix_html_helpers, "~> 1.0", [hex: :phoenix_html_helpers, repo: "hexpm", optional: false]}, {:phoenix_live_view, "~> 1.0", [hex: :phoenix_live_view, repo: "hexpm", optional: false]}, {:postgrex, ">= 0.0.0", [hex: :postgrex, repo: "hexpm", optional: false]}], "hexpm", "212de82e2e6e14f978e19f4108f2476e674a67c3906ba7b6706c844492d23fa0"},[m
+   "bandit": {:hex, :bandit, "1.8.0", "c2e93d7e3c5c794272fa4623124f827c6f24b643acc822be64c826f9447d92fb", [:mix], [{:hpax, "~> 1.0", [hex: :hpax, repo: "hexpm", optional: false]}, {:plug, "~> 1.18", [hex: :plug, repo: "hexpm", optional: false]}, {:telemetry, "~> 0.4 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}, {:thousand_island, "~> 1.0", [hex: :thousand_island, repo: "hexpm", optional: false]}, {:websock, "~> 0.5", [hex: :websock, repo: "hexpm", optional: false]}], "hexpm", "8458ff4eed20ff2a2ea69d4854883a077c33ea42b51f6811b044ceee0fa15422"},[m
+[32m+[m[32m  "bcrypt_elixir": {:hex, :bcrypt_elixir, "3.3.2", "d50091e3c9492d73e17fc1e1619a9b09d6a5ef99160eb4d736926fd475a16ca3", [:make, :mix], [{:comeonin, "~> 5.3", [hex: :comeonin, repo: "hexpm", optional: false]}, {:elixir_make, "~> 0.6", [hex: :elixir_make, repo: "hexpm", optional: false]}], "hexpm", "471be5151874ae7931911057d1467d908955f93554f7a6cd1b7d804cac8cef53"},[m
+   "castore": {:hex, :castore, "1.0.15", "8aa930c890fe18b6fe0a0cff27b27d0d4d231867897bd23ea772dee561f032a3", [:mix], [], "hexpm", "96ce4c69d7d5d7a0761420ef743e2f4096253931a3ba69e5ff8ef1844fe446d3"},[m
+   "cc_precompiler": {:hex, :cc_precompiler, "0.1.11", "8c844d0b9fb98a3edea067f94f616b3f6b29b959b6b3bf25fee94ffe34364768", [:mix], [{:elixir_make, "~> 0.7", [hex: :elixir_make, repo: "hexpm", optional: false]}], "hexpm", "3427232caf0835f94680e5bcf082408a70b48ad68a5f5c0b02a3bea9f3a075b9"},[m
+[32m+[m[32m  "comeonin": {:hex, :comeonin, "5.5.1", "5113e5f3800799787de08a6e0db307133850e635d34e9fab23c70b6501669510", [:mix], [], "hexpm", "65aac8f19938145377cee73973f192c5645873dcf550a8a6b18187d17c13ccdb"},[m
+   "db_connection": {:hex, :db_connection, "2.8.1", "9abdc1e68c34c6163f6fb96a96532272d13ad7ca45262156ae8b7ec6d9dc4bec", [:mix], [{:telemetry, "~> 0.4 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "a61a3d489b239d76f326e03b98794fb8e45168396c925ef25feb405ed09da8fd"},[m
+   "decimal": {:hex, :decimal, "2.3.0", "3ad6255aa77b4a3c4f818171b12d237500e63525c2fd056699967a3e7ea20f62", [:mix], [], "hexpm", "a4d66355cb29cb47c3cf30e71329e58361cfcb37c34235ef3bf1d7bf3773aeac"},[m
+   "dns_cluster": {:hex, :dns_cluster, "0.2.0", "aa8eb46e3bd0326bd67b84790c561733b25c5ba2fe3c7e36f28e88f384ebcb33", [:mix], [], "hexpm", "ba6f1893411c69c01b9e8e8f772062535a4cf70f3f35bcc964a324078d8c8240"},[m
+[36m@@ -28,6 +33,8 @@[m
+   "igniter_js": {:hex, :igniter_js, "0.4.10", "741b508a8115da95e3503aeacd5fa2c028897cfeec65f10a468d6296107b201d", [:mix], [{:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: false]}, {:rustler, "~> 0.36.2", [hex: :rustler, repo: "hexpm", optional: true]}, {:rustler_precompiled, "~> 0.8", [hex: :rustler_precompiled, repo: "hexpm", optional: false]}], "hexpm", "2d751f2b6e06e36a817ba66e016fa5a841ac809de197d18a1901cd380390cba8"},[m
+   "iterex": {:hex, :iterex, "0.1.2", "58f9b9b9a22a55cbfc7b5234a9c9c63eaac26d276b3db80936c0e1c60355a5a6", [:mix], [], "hexpm", "2e103b8bcc81757a9af121f6dc0df312c9a17220f302b1193ef720460d03029d"},[m
+   "jason": {:hex, :jason, "1.4.4", "b9226785a9aa77b6857ca22832cffa5d5011a667207eb2a0ad56adb5db443b8a", [:mix], [{:decimal, "~> 1.0 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm", "c5eb0cab91f094599f94d55bc63409236a8ec69a21a67814529e8d5f6cc90b3b"},[m
+[32m+[m[32m  "joken": {:hex, :joken, "2.6.2", "5daaf82259ca603af4f0b065475099ada1b2b849ff140ccd37f4b6828ca6892a", [:mix], [{:jose, "~> 1.11.10", [hex: :jose, repo: "hexpm", optional: false]}], "hexpm", "5134b5b0a6e37494e46dbf9e4dad53808e5e787904b7c73972651b51cce3d72b"},[m
+[32m+[m[32m  "jose": {:hex, :jose, "1.11.10", "a903f5227417bd2a08c8a00a0cbcc458118be84480955e8d251297a425723f83", [:mix, :rebar3], [], "hexpm", "0d6cd36ff8ba174db29148fc112b5842186b68a90ce9fc2b3ec3afe76593e614"},[m
+   "lazy_html": {:hex, :lazy_html, "0.1.8", "677a8642e644eef8de98f3040e2520d42d0f0f8bd6c5cd49db36504e34dffe91", [:make, :mix], [{:cc_precompiler, "~> 0.1", [hex: :cc_precompiler, repo: "hexpm", optional: false]}, {:elixir_make, "~> 0.9.0", [hex: :elixir_make, repo: "hexpm", optional: false]}, {:fine, "~> 0.1.0", [hex: :fine, repo: "hexpm", optional: false]}], "hexpm", "0d8167d930b704feb94b41414ca7f5779dff9bca7fcf619fcef18de138f08736"},[m
+   "libgraph": {:hex, :libgraph, "0.16.0", "3936f3eca6ef826e08880230f806bfea13193e49bf153f93edcf0239d4fd1d07", [:mix], [], "hexpm", "41ca92240e8a4138c30a7e06466acc709b0cbb795c643e9e17174a178982d6bf"},[m
+   "mime": {:hex, :mime, "2.0.7", "b8d739037be7cd402aee1ba0306edfdef982687ee7e9859bee6198c1e7e2f128", [:mix], [], "hexpm", "6171188e399ee16023ffc5b76ce445eb6d9672e2e241d2df6050f3c771e80ccd"},[m
+[36m@@ -46,6 +53,8 @@[m
+   "phoenix_live_view": {:hex, :phoenix_live_view, "1.1.12", "8b51c41e5c30cac3a6a98d928e92194ad9960feb745abf38455e2224674fa39b", [:mix], [{:igniter, ">= 0.6.16 and < 1.0.0-0", [hex: :igniter, repo: "hexpm", optional: true]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: true]}, {:lazy_html, "~> 0.1.0", [hex: :lazy_html, repo: "hexpm", optional: true]}, {:phoenix, "~> 1.6.15 or ~> 1.7.0 or ~> 1.8.0-rc", [hex: :phoenix, repo: "hexpm", optional: false]}, {:phoenix_html, "~> 3.3 or ~> 4.0", [hex: :phoenix_html, repo: "hexpm", optional: false]}, {:phoenix_template, "~> 1.0", [hex: :phoenix_template, repo: "hexpm", optional: false]}, {:phoenix_view, "~> 2.0", [hex: :phoenix_view, repo: "hexpm", optional: true]}, {:plug, "~> 1.15", [hex: :plug, repo: "hexpm", optional: false]}, {:telemetry, "~> 0.4.2 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "02bc806601562e157b05e66e8146bf24c170037b5005d6614035e789ae732209"},[m
+   "phoenix_pubsub": {:hex, :phoenix_pubsub, "2.1.3", "3168d78ba41835aecad272d5e8cd51aa87a7ac9eb836eabc42f6e57538e3731d", [:mix], [], "hexpm", "bba06bc1dcfd8cb086759f0edc94a8ba2bc8896d5331a1e2c2902bf8e36ee502"},[m
+   "phoenix_template": {:hex, :phoenix_template, "1.0.4", "e2092c132f3b5e5b2d49c96695342eb36d0ed514c5b252a77048d5969330d639", [:mix], [{:phoenix_html, "~> 2.14.2 or ~> 3.0 or ~> 4.0", [hex: :phoenix_html, repo: "hexpm", optional: true]}], "hexpm", "2c0c81f0e5c6753faf5cca2f229c9709919aba34fab866d3bc05060c9c444206"},[m
+[32m+[m[32m  "phoenix_view": {:hex, :phoenix_view, "2.0.4", "b45c9d9cf15b3a1af5fb555c674b525391b6a1fe975f040fb4d913397b31abf4", [:mix], [{:phoenix_html, "~> 2.14.2 or ~> 3.0 or ~> 4.0", [hex: :phoenix_html, repo: "hexpm", optional: true]}, {:phoenix_template, "~> 1.0", [hex: :phoenix_template, repo: "hexpm", optional: false]}], "hexpm", "4e992022ce14f31fe57335db27a28154afcc94e9983266835bb3040243eb620b"},[m
+[32m+[m[32m  "picosat_elixir": {:hex, :picosat_elixir, "0.2.3", "bf326d0f179fbb3b706bb2c15fbc367dacfa2517157d090fdfc32edae004c597", [:make, :mix], [{:elixir_make, "~> 0.6", [hex: :elixir_make, repo: "hexpm", optional: false]}], "hexpm", "f76c9db2dec9d2561ffaa9be35f65403d53e984e8cd99c832383b7ab78c16c66"},[m
+   "plug": {:hex, :plug, "1.18.1", "5067f26f7745b7e31bc3368bc1a2b818b9779faa959b49c934c17730efc911cf", [:mix], [{:mime, "~> 1.0 or ~> 2.0", [hex: :mime, repo: "hexpm", optional: false]}, {:plug_crypto, "~> 1.1.1 or ~> 1.2 or ~> 2.0", [hex: :plug_crypto, repo: "hexpm", optional: false]}, {:telemetry, "~> 0.4.3 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "57a57db70df2b422b564437d2d33cf8d33cd16339c1edb190cd11b1a3a546cc2"},[m
+   "plug_crypto": {:hex, :plug_crypto, "2.1.1", "19bda8184399cb24afa10be734f84a16ea0a2bc65054e23a62bb10f06bc89491", [:mix], [], "hexpm", "6470bce6ffe41c8bd497612ffde1a7e4af67f36a15eea5f921af71cf3e11247c"},[m
+   "postgrex": {:hex, :postgrex, "0.21.1", "2c5cc830ec11e7a0067dd4d623c049b3ef807e9507a424985b8dcf921224cd88", [:mix], [{:db_connection, "~> 2.1", [hex: :db_connection, repo: "hexpm", optional: false]}, {:decimal, "~> 1.5 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: false]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: true]}, {:table, "~> 0.1.0", [hex: :table, repo: "hexpm", optional: true]}], "hexpm", "27d8d21c103c3cc68851b533ff99eef353e6a0ff98dc444ea751de43eb48bdac"},[m
+[36m@@ -53,6 +62,7 @@[m
+   "req": {:hex, :req, "0.5.15", "662020efb6ea60b9f0e0fac9be88cd7558b53fe51155a2d9899de594f9906ba9", [:mix], [{:brotli, "~> 0.3.1", [hex: :brotli, repo: "hexpm", optional: true]}, {:ezstd, "~> 1.0", [hex: :ezstd, repo: "hexpm", optional: true]}, {:finch, "~> 0.17", [hex: :finch, repo: "hexpm", optional: false]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: false]}, {:mime, "~> 2.0.6 or ~> 2.1", [hex: :mime, repo: "hexpm", optional: false]}, {:nimble_csv, "~> 1.0", [hex: :nimble_csv, repo: "hexpm", optional: true]}, {:plug, "~> 1.0", [hex: :plug, repo: "hexpm", optional: true]}], "hexpm", "a6513a35fad65467893ced9785457e91693352c70b58bbc045b47e5eb2ef0c53"},[m
+   "rewrite": {:hex, :rewrite, "1.1.2", "f5a5d10f5fed1491a6ff48e078d4585882695962ccc9e6c779bae025d1f92eda", [:mix], [{:glob_ex, "~> 0.1", [hex: :glob_ex, repo: "hexpm", optional: false]}, {:sourceror, "~> 1.0", [hex: :sourceror, repo: "hexpm", optional: false]}, {:text_diff, "~> 0.1", [hex: :text_diff, repo: "hexpm", optional: false]}], "hexpm", "7f8b94b1e3528d0a47b3e8b7bfeca559d2948a65fa7418a9ad7d7712703d39d4"},[m
+   "rustler_precompiled": {:hex, :rustler_precompiled, "0.8.3", "4e741024b0b097fe783add06e53ae9a6f23ddc78df1010f215df0c02915ef5a8", [:mix], [{:castore, "~> 0.1 or ~> 1.0", [hex: :castore, repo: "hexpm", optional: false]}, {:rustler, "~> 0.23", [hex: :rustler, repo: "hexpm", optional: true]}], "hexpm", "c23f5f33cb6608542de4d04faf0f0291458c352a4648e4d28d17ee1098cddcc4"},[m
+[32m+[m[32m  "slugify": {:hex, :slugify, "1.3.1", "0d3b8b7e5c1eeaa960e44dce94382bee34a39b3ea239293e457a9c5b47cc6fd3", [:mix], [], "hexpm", "cb090bbeb056b312da3125e681d98933a360a70d327820e4b7f91645c4d8be76"},[m
+   "sourceror": {:hex, :sourceror, "1.10.0", "38397dedbbc286966ec48c7af13e228b171332be1ad731974438c77791945ce9", [:mix], [], "hexpm", "29dbdfc92e04569c9d8e6efdc422fc1d815f4bd0055dc7c51b8800fb75c4b3f1"},[m
+   "spark": {:hex, :spark, "2.2.68", "4c4547c88d73311e3157bc402ab27f3a7bbd5e55a2ee92bcf7cd3a0a475d201e", [:mix], [{:igniter, ">= 0.3.64 and < 1.0.0-0", [hex: :igniter, repo: "hexpm", optional: true]}, {:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: true]}, {:sourceror, "~> 1.2", [hex: :sourceror, repo: "hexpm", optional: true]}], "hexpm", "2fa4dd89801415a098a421589633f0e3df7ed9ff4046e80a65d35a413bc0d194"},[m
+   "spitfire": {:hex, :spitfire, "0.2.1", "29e154873f05444669c7453d3d931820822cbca5170e88f0f8faa1de74a79b47", [:mix], [], "hexpm", "6eeed75054a38341b2e1814d41bb0a250564092358de2669fdb57ff88141d91b"},[m
+[1mdiff --git a/priv/resource_snapshots/repo/extensions.json b/priv/resource_snapshots/repo/extensions.json[m
+[1mindex 33001db..323661b 100644[m
+[1m--- a/priv/resource_snapshots/repo/extensions.json[m
+[1m+++ b/priv/resource_snapshots/repo/extensions.json[m
+[36m@@ -1,6 +1,7 @@[m
+ {[m
+   "ash_functions_version": 5,[m
+   "installed": [[m
+[31m-    "ash-functions"[m
+[32m+[m[32m    "ash-functions",[m
+[32m+[m[32m    "citext"[m
+   ][m
+ }[m
+\ No newline at end of file[m
