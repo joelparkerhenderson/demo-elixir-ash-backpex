@@ -44,7 +44,7 @@ defmodule DemoElixirAshBackpexWeb.Router do
 
     backpex_routes()
 
-    live_session :default, on_mount: Backpex.InitAssigns do
+    ash_authentication_live_session :ash_authentication_live_session_routes, on_mount: Backpex.InitAssigns do
       live_resources "/items", Admin.ItemLive
     end
   end

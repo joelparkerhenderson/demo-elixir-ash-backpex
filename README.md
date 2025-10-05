@@ -398,7 +398,7 @@ scope "/admin", MyAppWeb do
 
   backpex_routes()
 
-  live_session :default, on_mount: Backpex.InitAssigns do
+  ash_authentication_live_session :admin_routes, on_mount: Backpex.InitAssigns do
     live_resources "/items", Admin.ItemLive
   end
 end
@@ -746,6 +746,688 @@ Run:
 
 ```sh
 mix igniter.install ash_authentication_phoenix --auth-strategy magic_link
+```
+
+<details>
+  <summary>Output</summary>
+
+```stdout
+Update: mix.exs
+
+       ...|
+ 42  42   |  defp deps do
+ 43  43   |    [
+     44 + |      {:ash_authentication_phoenix, "~> 2.0"},
+ 44  45   |      {:absinthe_phoenix, "~> 2.0"},
+ 45  46   |      {:usage_rules, "~> 0.1"},
+       ...|
+
+
+Modify mix.exs and install? [Y/n] 
+compiling ash_authentication_phoenix ✔
+Could not find accounts module. Please set the equivalent CLI flag.
+
+There are two likely causes:
+
+1. You have an existing accounts module that does not have the default name.
+    If this is the case, quit this command and use the
+    --accounts flag to specify the correct module.
+2. You have not yet run the `ash_authentication` installer.
+    To run this, answer Y to this prompt.
+
+Run the installer now?
+ [Yn] 
+
+Compiling 18 files (.ex)
+Generated navatrack app
+installing new dependencies ✔
+`ash_authentication_phoenix.install` ✔
+
+The following installer was found and executed: `ash_authentication_phoenix.install`:
+
+Update: .formatter.exs
+
+ 1  1   |[
+ 2  2   |  import_deps: [
+    3 + |    :ash_authentication,
+    4 + |    :ash_authentication_phoenix,
+ 3  5   |    :backpex,
+ 4  6   |    :ash_state_machine,
+     ...|
+
+
+Create: .igniter.exs
+
+1  |# This is a configuration file for igniter.
+2  |# For option documentation, see https://hexdocs.pm/igniter/Igniter.Project.IgniterConfig.html
+3  |# To keep it up to date, use `mix igniter.setup`
+4  |[
+5  |  module_location: :outside_matching_folder,
+6  |  extensions: [{Igniter.Extensions.Phoenix, []}],
+7  |  deps_location: :last_list_literal,
+8  |  source_folders: ["lib", "test/support"],
+9  |  dont_move_files: [~r"lib/mix"]
+10 |]
+11 |
+
+
+Update: assets/css/app.css
+
+       ...|
+  3   3   |
+  4   4   |@import "tailwindcss" source(none);
+      5 + |@source "../../deps/ash_authentication_phoenix";
+  5   6   |@source "../css";
+  6   7   |@source "../js";
+       ...|
+
+
+Update: config/config.exs
+
+       ...|
+ 44  44   |    "Ash.Resource": [
+ 45  45   |      section_order: [
+     46 + |        :authentication,
+     47 + |        :tokens,
+ 46  48   |        :postgres,
+ 47  49   |        :json_api,
+       ...|
+ 81  83   |  ecto_repos: [Navatrack.Repo],
+ 82  84   |  generators: [timestamp_type: :utc_datetime],
+ 83     - |  ash_domains: []
+     85 + |  ash_domains: [Navatrack.Accounts]
+ 84  86   |
+ 85  87   |# Configures the endpoint
+       ...|
+
+
+Update: config/dev.exs
+
+     ...|
+66 66   |
+67 67   |# Enable dev routes for dashboard and mailbox
+68    - |config :navatrack, dev_routes: true
+   68 + |config :navatrack, dev_routes: true, token_signing_secret: "c1s+dj5IQ+HJJVXqbp38aIO5Msg4DF1T"
+69 69   |
+70 70   |# Do not include metadata nor timestamps in development logs
+     ...|
+
+
+Update: config/runtime.exs
+
+       ...|
+ 68  68   |    secret_key_base: secret_key_base
+ 69  69   |
+     70 + |  config :navatrack,
+     71 + |    token_signing_secret:
+     72 + |      System.get_env("TOKEN_SIGNING_SECRET") ||
+     73 + |        raise("Missing environment variable `TOKEN_SIGNING_SECRET`!")
+     74 + |
+ 70  75   |  # ## SSL Support
+ 71  76   |  #
+       ...|
+
+
+Update: config/test.exs
+
+ 1  1   |import Config
+    2 + |config :navatrack, token_signing_secret: "gYndTlBy8FSka0T0jx+Bu88K2L2UKwaT"
+    3 + |config :bcrypt_elixir, log_rounds: 1
+ 2  4   |config :navatrack, Oban, testing: :manual
+ 3  5   |config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
+     ...|
+
+
+Create: lib/navatrack/accounts.ex
+
+1  |defmodule Navatrack.Accounts do
+2  |  use Ash.Domain,
+3  |    otp_app: :navatrack
+4  |
+5  |  resources do
+6  |    resource Navatrack.Accounts.Token
+7  |    resource Navatrack.Accounts.User
+8  |  end
+9  |end
+10 |
+
+
+Create: lib/navatrack/accounts/token.ex
+
+1   |defmodule Navatrack.Accounts.Token do
+2   |  use Ash.Resource,
+3   |    otp_app: :navatrack,
+4   |    domain: Navatrack.Accounts,
+5   |    data_layer: AshPostgres.DataLayer,
+6   |    authorizers: [Ash.Policy.Authorizer],
+7   |    extensions: [AshAuthentication.TokenResource]
+8   |
+9   |  postgres do
+10  |    table "tokens"
+11  |    repo Navatrack.Repo
+12  |  end
+13  |
+14  |  actions do
+15  |    defaults [:read]
+16  |
+17  |    read :expired do
+18  |      description "Look up all expired tokens."
+19  |      filter expr(expires_at < now())
+20  |    end
+21  |
+22  |    read :get_token do
+23  |      description "Look up a token by JTI or token, and an optional purpose."
+24  |      get? true
+25  |      argument :token, :string, sensitive?: true
+26  |      argument :jti, :string, sensitive?: true
+27  |      argument :purpose, :string, sensitive?: false
+28  |
+29  |      prepare AshAuthentication.TokenResource.GetTokenPreparation
+30  |    end
+31  |
+32  |    action :revoked?, :boolean do
+33  |      description "Returns true if a revocation token is found for the provided token"
+34  |      argument :token, :string, sensitive?: true
+35  |      argument :jti, :string, sensitive?: true
+36  |
+37  |      run AshAuthentication.TokenResource.IsRevoked
+38  |    end
+39  |
+40  |    create :revoke_token do
+41  |      description "Revoke a token. Creates a revocation token corresponding to the provided token."
+42  |      accept [:extra_data]
+43  |      argument :token, :string, allow_nil?: false, sensitive?: true
+44  |
+45  |      change AshAuthentication.TokenResource.RevokeTokenChange
+46  |    end
+47  |
+48  |    create :revoke_jti do
+49  |      description "Revoke a token by JTI. Creates a revocation token corresponding to the provided jti."
+50  |      accept [:extra_data]
+51  |      argument :subject, :string, allow_nil?: false, sensitive?: true
+52  |      argument :jti, :string, allow_nil?: false, sensitive?: true
+53  |
+54  |      change AshAuthentication.TokenResource.RevokeJtiChange
+55  |    end
+56  |
+57  |    create :store_token do
+58  |      description "Stores a token used for the provided purpose."
+59  |      accept [:extra_data, :purpose]
+60  |      argument :token, :string, allow_nil?: false, sensitive?: true
+61  |      change AshAuthentication.TokenResource.StoreTokenChange
+62  |    end
+63  |
+64  |    destroy :expunge_expired do
+65  |      description "Deletes expired tokens."
+66  |      change filter expr(expires_at < now())
+67  |    end
+68  |
+69  |    update :revoke_all_stored_for_subject do
+70  |      description "Revokes all stored tokens for a specific subject."
+71  |      accept [:extra_data]
+72  |      argument :subject, :string, allow_nil?: false, sensitive?: true
+73  |      change AshAuthentication.TokenResource.RevokeAllStoredForSubjectChange
+74  |    end
+75  |  end
+76  |
+77  |  policies do
+78  |    bypass AshAuthentication.Checks.AshAuthenticationInteraction do
+79  |      description "AshAuthentication can interact with the token resource"
+80  |      authorize_if always()
+81  |    end
+82  |  end
+83  |
+84  |  attributes do
+85  |    attribute :jti, :string do
+86  |      primary_key? true
+87  |      public? true
+88  |      allow_nil? false
+89  |      sensitive? true
+90  |    end
+91  |
+92  |    attribute :subject, :string do
+93  |      allow_nil? false
+94  |      public? true
+95  |    end
+96  |
+97  |    attribute :expires_at, :utc_datetime do
+98  |      allow_nil? false
+99  |      public? true
+100 |    end
+101 |
+102 |    attribute :purpose, :string do
+103 |      allow_nil? false
+104 |      public? true
+105 |    end
+106 |
+107 |    attribute :extra_data, :map do
+108 |      public? true
+109 |    end
+110 |
+111 |    create_timestamp :created_at
+112 |    update_timestamp :updated_at
+113 |  end
+114 |end
+115 |
+
+
+Create: lib/navatrack/accounts/user.ex
+
+1   |defmodule Navatrack.Accounts.User do
+2   |  use Ash.Resource,
+3   |    otp_app: :navatrack,
+4   |    domain: Navatrack.Accounts,
+5   |    data_layer: AshPostgres.DataLayer,
+6   |    authorizers: [Ash.Policy.Authorizer],
+7   |    extensions: [AshAuthentication]
+8   |
+9   |  authentication do
+10  |    add_ons do
+11  |      log_out_everywhere do
+12  |        apply_on_password_change? true
+13  |      end
+14  |    end
+15  |
+16  |    tokens do
+17  |      enabled? true
+18  |      token_resource Navatrack.Accounts.Token
+19  |      signing_secret Navatrack.Secrets
+20  |      store_all_tokens? true
+21  |      require_token_presence_for_authentication? true
+22  |    end
+23  |
+24  |    strategies do
+25  |      magic_link do
+26  |        identity_field :email
+27  |        registration_enabled? true
+28  |        require_interaction? true
+29  |
+30  |        sender Navatrack.Accounts.User.Senders.SendMagicLinkEmail
+31  |      end
+32  |    end
+33  |  end
+34  |
+35  |  postgres do
+36  |    table "users"
+37  |    repo Navatrack.Repo
+38  |  end
+39  |
+40  |  actions do
+41  |    defaults [:read]
+42  |
+43  |    read :get_by_subject do
+44  |      description "Get a user by the subject claim in a JWT"
+45  |      argument :subject, :string, allow_nil?: false
+46  |      get? true
+47  |      prepare AshAuthentication.Preparations.FilterBySubject
+48  |    end
+49  |
+50  |    read :get_by_email do
+51  |      description "Looks up a user by their email"
+52  |      get? true
+53  |
+54  |      argument :email, :ci_string do
+55  |        allow_nil? false
+56  |      end
+57  |
+58  |      filter expr(email == ^arg(:email))
+59  |    end
+60  |
+61  |    create :sign_in_with_magic_link do
+62  |      description "Sign in or register a user with magic link."
+63  |
+64  |      argument :token, :string do
+65  |        description "The token from the magic link that was sent to the user"
+66  |        allow_nil? false
+67  |      end
+68  |
+69  |      upsert? true
+70  |      upsert_identity :unique_email
+71  |      upsert_fields [:email]
+72  |
+73  |      # Uses the information from the token to create or sign in the user
+74  |      change AshAuthentication.Strategy.MagicLink.SignInChange
+75  |
+76  |      metadata :token, :string do
+77  |        allow_nil? false
+78  |      end
+79  |    end
+80  |
+81  |    action :request_magic_link do
+82  |      argument :email, :ci_string do
+83  |        allow_nil? false
+84  |      end
+85  |
+86  |      run AshAuthentication.Strategy.MagicLink.Request
+87  |    end
+88  |  end
+89  |
+90  |  policies do
+91  |    bypass AshAuthentication.Checks.AshAuthenticationInteraction do
+92  |      authorize_if always()
+93  |    end
+94  |  end
+95  |
+96  |  attributes do
+97  |    uuid_primary_key :id
+98  |
+99  |    attribute :email, :ci_string do
+100 |      allow_nil? false
+101 |      public? true
+102 |    end
+103 |  end
+104 |
+105 |  identities do
+106 |    identity :unique_email, [:email]
+107 |  end
+108 |end
+109 |
+
+
+Create: lib/navatrack/accounts/user/senders/send_magic_link_email.ex
+
+1  |defmodule Navatrack.Accounts.User.Senders.SendMagicLinkEmail do
+2  |  @moduledoc """
+3  |  Sends a magic link email
+4  |  """
+5  |
+6  |  use AshAuthentication.Sender
+7  |  use NavatrackWeb, :verified_routes
+8  |
+9  |  import Swoosh.Email
+10 |  alias Navatrack.Mailer
+11 |
+12 |  @impl true
+13 |  def send(user_or_email, token, _) do
+14 |    # if you get a user, its for a user that already exists.
+15 |    # if you get an email, then the user does not yet exist.
+16 |
+17 |    email =
+18 |      case user_or_email do
+19 |        %{email: email} -> email
+20 |        email -> email
+21 |      end
+22 |
+23 |    new()
+24 |    # TODO: Replace with your email
+25 |    |> from({"noreply", "noreply@example.com"})
+26 |    |> to(to_string(email))
+27 |    |> subject("Your login link")
+28 |    |> html_body(body(token: token, email: email))
+29 |    |> Mailer.deliver!()
+30 |  end
+31 |
+32 |  defp body(params) do
+33 |    # NOTE: You may have to change this to match your magic link acceptance URL.
+34 |
+35 |    """
+36 |    <p>Hello, #{params[:email]}! Click this link to sign in:</p>
+37 |    <p><a href="#{url(~p"/magic_link/#{params[:token]}")}">#{url(~p"/magic_link/#{params[:token]}")}</a></p>
+38 |    """
+39 |  end
+40 |end
+41 |
+
+
+Update: lib/navatrack/application.ex
+
+     ...|
+23 23   |      NavatrackWeb.Endpoint,
+24 24   |      {Absinthe.Subscription, NavatrackWeb.Endpoint},
+25    - |      AshGraphql.Subscription.Batcher
+   25 + |      AshGraphql.Subscription.Batcher,
+   26 + |      {AshAuthentication.Supervisor, [otp_app: :navatrack]}
+26 27   |    ]
+27 28   |
+     ...|
+
+
+Update: lib/navatrack/repo.ex
+
+     ...|
+ 6  6   |  def installed_extensions do
+ 7  7   |    # Add extensions here, and the migration generator will install them.
+ 8    - |    ["ash-functions"]
+    8 + |    ["ash-functions", "citext"]
+ 9  9   |  end
+10 10   |
+     ...|
+
+
+Create: lib/navatrack/secrets.ex
+
+1  |defmodule Navatrack.Secrets do
+2  |  use AshAuthentication.Secret
+3  |
+4  |  def secret_for(
+5  |        [:authentication, :tokens, :signing_secret],
+6  |        Navatrack.Accounts.User,
+7  |        _opts,
+8  |        _context
+9  |      ) do
+10 |    Application.fetch_env(:navatrack, :token_signing_secret)
+11 |  end
+12 |end
+13 |
+
+
+Create: lib/navatrack_web/auth_overrides.ex
+
+1  |defmodule NavatrackWeb.AuthOverrides do
+2  |  use AshAuthentication.Phoenix.Overrides
+3  |
+4  |  # configure your UI overrides here
+5  |
+6  |  # First argument to `override` is the component name you are overriding.
+7  |  # The body contains any number of configurations you wish to override
+8  |  # Below are some examples
+9  |
+10 |  # For a complete reference, see https://hexdocs.pm/ash_authentication_phoenix/ui-overrides.html
+11 |
+12 |  # override AshAuthentication.Phoenix.Components.Banner do
+13 |  #   set :image_url, "https://media.giphy.com/media/g7GKcSzwQfugw/giphy.gif"
+14 |  #   set :text_class, "bg-red-500"
+15 |  # end
+16 |
+17 |  # override AshAuthentication.Phoenix.Components.SignIn do
+18 |  #  set :show_banner, false
+19 |  # end
+20 |end
+21 |
+
+
+Create: lib/navatrack_web/controllers/auth_controller.ex
+
+1  |defmodule NavatrackWeb.AuthController do
+2  |  use NavatrackWeb, :controller
+3  |  use AshAuthentication.Phoenix.Controller
+4  |
+5  |  def success(conn, activity, user, _token) do
+6  |    return_to = get_session(conn, :return_to) || ~p"/"
+7  |
+8  |    message =
+9  |      case activity do
+10 |        {:confirm_new_user, :confirm} -> "Your email address has now been confirmed"
+11 |        {:password, :reset} -> "Your password has successfully been reset"
+12 |        _ -> "You are now signed in"
+13 |      end
+14 |
+15 |    conn
+16 |    |> delete_session(:return_to)
+17 |    |> store_in_session(user)
+18 |    # If your resource has a different name, update the assign name here (i.e :current_admin)
+19 |    |> assign(:current_user, user)
+20 |    |> put_flash(:info, message)
+21 |    |> redirect(to: return_to)
+22 |  end
+23 |
+24 |  def failure(conn, activity, reason) do
+25 |    message =
+26 |      case {activity, reason} do
+27 |        {_,
+28 |         %AshAuthentication.Errors.AuthenticationFailed{
+29 |           caused_by: %Ash.Error.Forbidden{
+30 |             errors: [%AshAuthentication.Errors.CannotConfirmUnconfirmedUser{}]
+31 |           }
+32 |         }} ->
+33 |          """
+34 |          You have already signed in another way, but have not confirmed your account.
+35 |          You can confirm your account using the link we sent to you, or by resetting your password.
+36 |          """
+37 |
+38 |        _ ->
+39 |          "Incorrect email or password"
+40 |      end
+41 |
+42 |    conn
+43 |    |> put_flash(:error, message)
+44 |    |> redirect(to: ~p"/sign-in")
+45 |  end
+46 |
+47 |  def sign_out(conn, _params) do
+48 |    return_to = get_session(conn, :return_to) || ~p"/"
+49 |
+50 |    conn
+51 |    |> clear_session(:navatrack)
+52 |    |> put_flash(:info, "You are now signed out")
+53 |    |> redirect(to: return_to)
+54 |  end
+55 |end
+56 |
+
+
+Create: lib/navatrack_web/live_user_auth.ex
+
+1  |defmodule NavatrackWeb.LiveUserAuth do
+2  |  @moduledoc """
+3  |  Helpers for authenticating users in LiveViews.
+4  |  """
+5  |
+6  |  import Phoenix.Component
+7  |  use NavatrackWeb, :verified_routes
+8  |
+9  |  # This is used for nested liveviews to fetch the current user.
+10 |  # To use, place the following at the top of that liveview:
+11 |  # on_mount {NavatrackWeb.LiveUserAuth, :current_user}
+12 |  def on_mount(:current_user, _params, session, socket) do
+13 |    {:cont, AshAuthentication.Phoenix.LiveSession.assign_new_resources(socket, session)}
+14 |  end
+15 |
+16 |  def on_mount(:live_user_optional, _params, _session, socket) do
+17 |    if socket.assigns[:current_user] do
+18 |      {:cont, socket}
+19 |    else
+20 |      {:cont, assign(socket, :current_user, nil)}
+21 |    end
+22 |  end
+23 |
+24 |  def on_mount(:live_user_required, _params, _session, socket) do
+25 |    if socket.assigns[:current_user] do
+26 |      {:cont, socket}
+27 |    else
+28 |      {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/sign-in")}
+29 |    end
+30 |  end
+31 |
+32 |  def on_mount(:live_no_user, _params, _session, socket) do
+33 |    if socket.assigns[:current_user] do
+34 |      {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/")}
+35 |    else
+36 |      {:cont, assign(socket, :current_user, nil)}
+37 |    end
+38 |  end
+39 |end
+40 |
+
+Update: lib/navatrack_web/router.ex
+
+       ...|
+  2   2   |  use NavatrackWeb, :router
+  3   3   |
+      4 + |  use AshAuthentication.Phoenix.Router
+      5 + |
+      6 + |  import AshAuthentication.Plug.Helpers
+  4   7   |  import Backpex.Router
+  5   8   |
+  6   9   |  pipeline :graphql do
+     10 + |    plug :load_from_bearer
+     11 + |    plug :set_actor, :user
+  7  12   |    plug AshGraphql.Plug
+  8  13   |  end
+       ...|
+ 15  20   |    plug :protect_from_forgery
+ 16  21   |    plug :put_secure_browser_headers
+     22 + |    plug :load_from_session
+ 17  23   |  end
+ 18  24   |
+ 19  25   |  pipeline :api do
+ 20  26   |    plug :accepts, ["json"]
+     27 + |    plug :load_from_bearer
+     28 + |    plug :set_actor, :user
+ 21  29   |  end
+ 22  30   |
+       ...|
+ 24  32   |    pipe_through :browser
+ 25  33   |    backpex_routes()
+     34 + |    auth_routes AuthController, Navatrack.Accounts.User, path: "/auth"
+     35 + |    sign_out_route AuthController
+     36 + |
+     37 + |    # Remove these if you'd like to use your own authentication views
+     38 + |    sign_in_route register_path: "/register",
+     39 + |                  reset_path: "/reset",
+     40 + |                  auth_routes_prefix: "/auth",
+     41 + |                  on_mount: [{NavatrackWeb.LiveUserAuth, :live_no_user}],
+     42 + |                  overrides: [
+     43 + |                    NavatrackWeb.AuthOverrides,
+     44 + |                    AshAuthentication.Phoenix.Overrides.Default
+     45 + |                  ]
+     46 + |
+     47 + |    # Remove this if you do not want to use the reset password feature
+     48 + |    reset_route auth_routes_prefix: "/auth",
+     49 + |                overrides: [
+     50 + |                  NavatrackWeb.AuthOverrides,
+     51 + |                  AshAuthentication.Phoenix.Overrides.Default
+     52 + |                ]
+     53 + |
+     54 + |    # Remove this if you do not use the confirmation strategy
+     55 + |    confirm_route Navatrack.Accounts.User, :confirm_new_user,
+     56 + |      auth_routes_prefix: "/auth",
+     57 + |      overrides: [NavatrackWeb.AuthOverrides, AshAuthentication.Phoenix.Overrides.Default]
+     58 + |
+     59 + |    # Remove this if you do not use the magic link strategy.
+     60 + |    magic_sign_in_route(Navatrack.Accounts.User, :magic_link,
+     61 + |      auth_routes_prefix: "/auth",
+     62 + |      overrides: [NavatrackWeb.AuthOverrides, AshAuthentication.Phoenix.Overrides.Default]
+     63 + |    )
+ 26  64   |  end
+ 27  65   |
+     66 + |  scope "/", NavatrackWeb do
+     67 + |    pipe_through :browser
+     68 + |
+     69 + |    ash_authentication_live_session :authenticated_routes do
+     70 + |      # in each liveview, add one of the following at the top of the module:
+     71 + |      #
+     72 + |      # If an authenticated user must be present:
+     73 + |      # on_mount {NavatrackWeb.LiveUserAuth, :live_user_required}
+     74 + |      #
+     75 + |      # If an authenticated user *may* be present:
+     76 + |      # on_mount {NavatrackWeb.LiveUserAuth, :live_user_optional}
+     77 + |      #
+     78 + |      # If an authenticated user must *not* be present:
+     79 + |      # on_mount {NavatrackWeb.LiveUserAuth, :live_no_user}
+     80 + |    end
+     81 + |  end
+     82 + |
+ 28  83   |  scope "/api/json" do
+ 29  84   |    pipe_through [:api]
+       ...|
+```
+
+</details>
+
+Run:
+
+```
 mix ash.migrate
 ```
 
