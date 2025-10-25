@@ -20,7 +20,7 @@ import "phoenix_html";
 // Establish Phoenix Socket and LiveView configuration.
 import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
-import { hooks as colocatedHooks } from "phoenix-colocated/demo_elixir_ash_backpex";
+import { hooks as colocatedHooks } from "phoenix-colocated/my_app";
 import topbar from "../vendor/topbar";
 import { Hooks as BackpexHooks } from 'backpex';
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");

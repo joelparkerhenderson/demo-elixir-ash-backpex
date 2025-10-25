@@ -1,9 +1,9 @@
-defmodule DemoElixirAshBackpex.MixProject do
+defmodule MyApp.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :demo_elixir_ash_backpex,
+      app: :my_app,
       version: "0.1.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -21,7 +21,7 @@ defmodule DemoElixirAshBackpex.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {DemoElixirAshBackpex.Application, []},
+      mod: {MyApp.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
@@ -41,12 +41,9 @@ defmodule DemoElixirAshBackpex.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ash_authentication, "~> 4.0"},
-      {:picosat_elixir, "~> 0.2"},
-      {:ash_authentication_phoenix, "~> 2.0"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:igniter_js, "~> 0.4"},
-      {:backpex, "~> 0.15"},
+      {:backpex, "~> 0.16"},
       {:ash_backpex, "~> 0.0"},
       {:ash_postgres, "~> 2.0"},
       {:ash_phoenix, "~> 2.0"},
@@ -94,14 +91,10 @@ defmodule DemoElixirAshBackpex.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ash.setup --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": [
-        "compile",
-        "tailwind demo_elixir_ash_backpex",
-        "esbuild demo_elixir_ash_backpex"
-      ],
+      "assets.build": ["compile", "tailwind my_app", "esbuild my_app"],
       "assets.deploy": [
-        "tailwind demo_elixir_ash_backpex --minify",
-        "esbuild demo_elixir_ash_backpex --minify",
+        "tailwind my_app --minify",
+        "esbuild my_app --minify",
         "phx.digest"
       ],
       precommit: ["compile --warning-as-errors", "deps.unlock --unused", "format", "test"]
