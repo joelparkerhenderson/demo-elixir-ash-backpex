@@ -228,6 +228,36 @@ Insert a bodyless function to handle the Backpex layout:
 def admin(assigns)
 ```
 
+## Add translators
+
+Edit file [`config/config.exs`](config/config.exs) to add translators:
+
+```elixir
+config :backpex,
+  pubsub_server: MyApp.PubSub,
+  translator_function: {MyAppWeb.CoreComponents, :translate_backpex},
+  error_translator_function: {MyAppWeb.CoreComponents, :translate_error}
+```
+
+Edit file [`lib/my_app_web/components/core_components.ex`](lib/my_app_web/components/core_components.ex), find the existing function `translat_error`, and prepend:
+
+```elixir
+@doc """
+Translate a Backpex string using gettext.
+"""
+def translate_backpex(msg) when is_binary(msg) do
+  Gettext.dgettext(MyAppWeb.Gettext, "backpex", msg)
+end
+
+def translate_backpex({msg, bindings}) when is_binary(msg) and is_map(bindings) do
+  Gettext.dgettext(MyAppWeb.Gettext, "backpex", msg, bindings)
+end
+
+def translate_backpex({msg, bindings}) when is_binary(msg) and is_list(bindings) do
+  Gettext.dgettext(MyAppWeb.Gettext, "backpex", msg, Map.new(bindings))
+end
+```
+
 ## Create a resource
 
 Create a resource of any kind, such as an item, with our preferred options:

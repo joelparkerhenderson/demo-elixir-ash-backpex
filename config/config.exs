@@ -7,7 +7,10 @@
 # General application configuration
 import Config
 
-config :backpex, pubsub_server: MyApp.PubSub
+config :backpex,
+  pubsub_server: MyApp.PubSub,
+  translator_function: {MyAppWeb.CoreComponents, :translate_backpex},
+  error_translator_function: {MyAppWeb.CoreComponents, :translate_error}
 
 config :ash,
   allow_forbidden_field_for_relationships_by_default?: true,

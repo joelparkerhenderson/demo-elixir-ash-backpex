@@ -154,9 +154,6 @@ defmodule MyAppWeb.Layouts do
     """
   end
 
-  @doc """
-  Renders the admin layout for Backpex. This is a predefined function name.
-  """
   def admin(assigns)
 
 end

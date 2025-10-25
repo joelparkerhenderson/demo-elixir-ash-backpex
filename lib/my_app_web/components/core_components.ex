@@ -443,7 +443,31 @@ defmodule MyAppWeb.CoreComponents do
   end
 
   @doc """
-  Translates an error message using gettext.
+  Translate a Backpex message with various input formats that Backpex may use:
+  - Simple strings: "text"
+  - Tuples with bindings: {"text", %{key: value}}
+  - Any other format: returned as-is for the purpose of this demo.
+  """
+  def translate_backpex(msg) when is_binary(msg) do
+    msg
+  end
+
+  def translate_backpex({msg, bindings}) when is_binary(msg) do
+    # String with interpolation bindings
+    bindings = if is_list(bindings), do: Map.new(bindings), else: bindings
+
+    # Interpolate bindings into the message
+    Enum.reduce(bindings, msg, fn {key, value}, acc ->
+      String.replace(acc, "%{#{key}}", to_string(value))
+    end)
+  end
+
+  def translate_backpex(msg) do
+    msg
+  end
+
+  @doc """
+  Translate an error message using gettext.
   """
   def translate_error({msg, opts}) do
     # When using gettext, we typically pass the strings we want
