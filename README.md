@@ -21,21 +21,15 @@ To start your Phoenix server:
 
 The rest of this page is a tutorial that teaches how to build this project from scratch.
 
-For the tutorial, we use the fake app name "MyApp".
-
-For the tutorial, we use the fake domain name "MyApp.MyDomain".
-
-In this repo, the real app name is "MyApp".
-
 
 ## Install dependencies
 
-Install Erlang, Elixir, and Postgres; use any way you like.
+Install Erlang, Elixir, and Postgres, any way you want.
 
 <details>
-  <summary>Install via mise</summary>
+  <summary>How we install via mise</summary>
 
-Use:
+Install:
 
 ```sh
 mise use erlang@latest
@@ -43,10 +37,15 @@ mise use elixir@latest
 mise use postgres@latest
 ```
 
-Start Postgres and connect to it:
+Start Postgres:
 
 ```sh
 "$(mise where postgres)/bin/pg_ctl" -D "$(mise where postgres)/data" -l "$(mise where postgres)/log" start
+```
+
+Connect to Postgres:
+
+```sh
 "$(mise where postgres)/bin/psql" postgres postgres
 ```
 
