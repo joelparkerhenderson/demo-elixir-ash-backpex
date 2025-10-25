@@ -515,6 +515,25 @@ MyApp.MyDomain.Item |> Ash.read!()
 
 </details>
 
+Optionally verify the item via Postgres:
+
+```sh
+psql -U postgres -c "\c my_app_dev" -c "SELECT COUNT(*) FROM items;"
+```
+
+<details>
+  <summary>Output</summary>
+
+```stdout
+You are now connected to database "my_app_dev" as user "postgres".
+ count 
+-------
+     1
+(1 row)
+```
+
+</details>
+
 
 ## Success
 
