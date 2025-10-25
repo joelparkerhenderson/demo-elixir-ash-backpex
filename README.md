@@ -30,7 +30,12 @@ In this repo, the real app name is "MyApp".
 
 ## Install dependencies
 
-Install Erlang, Elixir, and Postgres; use any way you like, such as via mise:
+Install Erlang, Elixir, and Postgres; use any way you like.
+
+<details>
+  <summary>Install via mise</summary>
+
+Use:
 
 ```sh
 mise use erlang@latest
@@ -38,12 +43,17 @@ mise use elixir@latest
 mise use postgres@latest
 ```
 
-Start Postgres and connect to it; use any way you like, such as via mise:
+Start Postgres and connect to it:
 
 ```sh
 "$(mise where postgres)/bin/pg_ctl" -D "$(mise where postgres)/data" -l "$(mise where postgres)/log" start
 "$(mise where postgres)/bin/psql" postgres postgres
 ```
+
+</details>
+
+
+## Install Phoenix and Igniter
 
 Install Phoenix web framework and Igniter code generation framework:
 
