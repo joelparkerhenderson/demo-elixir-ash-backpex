@@ -44,7 +44,7 @@ defmodule MyApp.MixProject do
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:igniter_js, "~> 0.4"},
       {:backpex, "~> 0.16"},
-      {:ash_backpex, "~> 0.0"},
+      {:ash_backpex, "~> 0.0.9"},
       {:ash_postgres, "~> 2.0"},
       {:ash_phoenix, "~> 2.0"},
       {:ash, "~> 3.0"},
