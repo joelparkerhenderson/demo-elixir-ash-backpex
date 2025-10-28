@@ -534,6 +534,52 @@ You are now connected to database "my_app_dev" as user "postgres".
 
 </details>
 
+## Policy
+
+Edit [`lib/my_app/my_domain/item.ex`](lib/my_app/my_domain/item.ex) to add policy authorizer:
+
+```elixir
+use Ash.Resource,
+  otp_app: :my_app,
+  domain: MyApp.MyDomain,
+  data_layer: AshPostgres.DataLayer,
+  authorizers: [Ash.Policy.Authorizer]
+```
+
+And add policies:
+
+```elixir
+policies do
+  policy always() do
+    authorize_if always()
+  end
+end
+```
+
+And add workaround:
+
+```elixir
+# Bypass authorization for now since ash_backpex has limitations
+# with Ash authorization policies
+query_opts do
+  authorize? false
+end
+```
+
+Ash uses SAT solvers for policy verification and constraint solving.
+
+Edit file `mix.exs` and add:
+
+```elixir
+{:picosat_elixir, "~> 0.2"},  # Recommended - faster
+```
+
+Run:
+
+```sh
+mix deps.update --all
+```
+
 
 ## Success
 

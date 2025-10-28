@@ -1,5 +1,9 @@
 defmodule MyApp.MyDomain.Item do
-  use Ash.Resource, otp_app: :my_app, domain: MyApp.MyDomain, data_layer: AshPostgres.DataLayer
+  use Ash.Resource,
+    otp_app: :my_app,
+    domain: MyApp.MyDomain,
+    data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer]
 
   postgres do
     table "items"
@@ -21,4 +25,11 @@ defmodule MyApp.MyDomain.Item do
       public? true
     end
   end
+
+  policies do
+    policy always() do
+      authorize_if always()
+    end
+  end
+
 end

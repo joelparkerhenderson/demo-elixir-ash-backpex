@@ -6,8 +6,8 @@ defmodule MyAppWeb.ItemLive do
     layout &MyAppWeb.Layouts.admin/1
 
     fields do
-      field :name
-      field :note
+      field :name, module: Backpex.Fields.Text
+      field :note, module: Backpex.Fields.Text
     end
   end
 
